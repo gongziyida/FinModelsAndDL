@@ -1,0 +1,4 @@
+matplotlib==3.10.7
+numpy==2.3.3
+tensorflow==2.20.0
+tensorflow_probability==0.25.0
