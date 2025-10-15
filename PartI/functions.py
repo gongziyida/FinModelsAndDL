@@ -31,16 +31,16 @@ def AR1(num_samples, T, rho, sigma):
     return tf.transpose(y.stack())
     
 #@tf.function
-def step(k, I, delta):
+def step(I, k, delta):
     ''' Computes the next period capital stock k[t+1] given current capital stock k[t] and investment I[t].
     k and I need to have the same shape.
 
     Parameters
     ----------
-    k : tf.Tensor
-        Current capital stock
     I : tf.Tensor
         Current investment
+    k : tf.Tensor
+        Current capital stock
     delta : float
         Depreciation rate
 
@@ -50,8 +50,6 @@ def step(k, I, delta):
         Next period capital stock, of the same shape as k and I
     '''
     new_k = (1 - delta) * k + I
-    # assert tf.reduce_all(tf.logical_or(new_k > 0, tf.abs(new_k) < 1e-5)), \
-    #     "Negative capital stock encountered!"
     # clip to avoid numerical issues
     return tf.where(new_k < 1e-5, 1e-5, new_k)
 
@@ -123,15 +121,15 @@ def marginal_cost_of_investment(I, k, psi0):
     return psi0 * I / k
 
 @tf.function
-def cash_flow(k, I, z, theta, psi0, psi1):
+def cash_flow(I, k, z, theta, psi0, psi1):
     ''' Computes the cash flow in Strebulaev and Whited (2012), Section 3.1.3
 
     Parameters
     ----------
-    k : tf.Tensor
-        Current capital stock
     I : tf.Tensor
         Current investment
+    k : tf.Tensor
+        Current capital stock
     z : tf.Tensor
         Current productivity / demand shock
     theta : float
@@ -147,20 +145,20 @@ def cash_flow(k, I, z, theta, psi0, psi1):
     return profit_function(k, z, theta) - adjustment_cost(I, k, psi0, psi1) - I
 
 #@tf.function
-def optimal_condition(k, next_k, I, z, psi0, psi1, theta, r, delta):
+def optimal_condition(k, next_k, I, next_I, next_z, psi0, psi1, theta, r, delta):
     ''' Computes the optimality condition for the model
     in Strebulaev and Whited (2012), Section 3.1.3, Eq. 3.8
 
     Parameters
     ----------
-    k : tf.Tensor
-        Current capital stock
-    next_k : tf.Tensor
-        Next period capital stock, of shape (*k.shape, rand_sample_size)
+    k, next_k : tf.Tensor
+        Current and next period capital stock, respectively, of the same shapes
     I : tf.Tensor
         Current investment, of the same shape as k
-    z : tf.Tensor
-        Current exogenous shock, of the same shape as next_k
+    next_I : tf.Tensor
+        Next period investment, of shape (*k.shape, random_sample_size)
+    next_z : tf.Tensor
+        Current exogenous shock, of the same shape as next_I
     psi0, psi1 : float
         Coefficients to the quardratic component and the constant component, respectively
     theta : float
@@ -173,14 +171,19 @@ def optimal_condition(k, next_k, I, z, psi0, psi1, theta, r, delta):
     Returns
     -------
     condition : tf.Tensor
-        Computed optimality condition tensor of shape (*dpsi_dI_prev.shape,)
+        Computed optimality condition tensor of shape (*k.shape, 1)
     '''
-    dpi_dk = marginal_product_of_capital(next_k, z, theta)
-    dpsi_dk = marginal_cost_of_capital(I, next_k, psi0, psi1)
-    dpsi_dI = marginal_cost_of_investment(I, next_k, psi0)
-    dpsi_dI_prev = marginal_cost_of_investment(I, k, psi0)
+    assert (k.shape == next_k.shape) and (k.shape == I.shape) and (I.shape == next_I.shape[:-1])
+    assert next_I.shape[-1] == next_z.shape[-1]
+
+    next_k = next_k[:,None]
+    dpi_dk_next = marginal_product_of_capital(next_k, next_z, theta)
+    dpsi_dk_next = marginal_cost_of_capital(next_I, next_k, psi0, psi1)
+    dpsi_dI_next = marginal_cost_of_investment(next_I, next_k, psi0)
     
-    shadow_value = dpi_dk - dpsi_dk + (1 - delta) * (1 + dpsi_dI_prev)
-    shadow_value = tf.reduce_mean(shadow_value, axis=-1, keepdims=True) # average over next_k randomness
-    marginal_cost = (1 + dpsi_dI) * (1 + r)
+    shadow_value = dpi_dk_next - dpsi_dk_next + (1 - delta) * (1 + dpsi_dI_next)
+    # average over randomness and then discount
+    # Need to keep shape (*k.shape, 1) for compatibility with objectives.py
+    shadow_value = tf.reduce_mean(shadow_value, axis=-1, keepdims=True) / (1 + r) # 
+    marginal_cost = 1 + marginal_cost_of_investment(I, k, psi0)[:,None] # shape (*k.shape, 1)
     return shadow_value - marginal_cost
