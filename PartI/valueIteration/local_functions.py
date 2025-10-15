@@ -3,8 +3,8 @@ import tensorflow_probability as tfp
 from PartI.functions import profit_function, adjustment_cost
 
 @tf.function
-def value_function(k, lnz, k_vals, V_table, lnz_transition_prob, 
-                   delta=0.15, r=0.04, theta=0.7, psi0=0.01, psi1=0.0):
+def value_function(k, lnz, k_vals, V_table, lnz_transition_prob, psi0, psi1, 
+                   delta=0.15, r=0.04, theta=0.7):
     ''' Computes the tabular value function V given in Strebulaev and Whited (2012), Eq. 3.10.
 
     Parameters
@@ -19,16 +19,16 @@ def value_function(k, lnz, k_vals, V_table, lnz_transition_prob,
         Values for (z, k) pairs, of shape (num_z, num_k)
     lnz_transition_prob : tf.Tensor
         Transition probability matrix for ln(z') given ln(z), of shape (batch_size, num_lnz)
+    psi0 : float
+        Coefficient to the quardratic component in the adjusted cost
+    psi1 : float
+        Coefficient to the constant component in the adjusted cost
     delta : float, optional
         Constant rate of capital depreciation, by default 0.15
     r : float, optional
         Risk-free interest rate, by default 0.04
     theta : float, optional
         Profit function curvature in the profit function, by default 0.7
-    psi0 : float, optional
-        Coefficient to the quardratic component in the adjusted cost, by default 0.01
-    psi1 : float, optional
-        Coefficient to the constant component in the adjusted cost, by default 0.0
 
     Returns
     -------
@@ -87,9 +87,8 @@ def AR1_transition_matrix(n_grids, rho=0.7, sigma=0.15, m=5):
     return tf.clip_by_value(P, 0.0, 1.0), y
 
 
-def value_iteration(n_lnz, n_k, max_iter, 
-                    k_min=1, rho=0.7, sigma=0.15, m=5,
-                    delta=0.15, r=0.04, theta=0.7, psi0=0.01, psi1=0.0):
+def value_iteration(n_lnz, n_k, max_iter, psi0, psi1, 
+                    k_min=1, rho=0.7, sigma=0.15, m=5, delta=0.15, r=0.04, theta=0.7):
     ''' Solves the value function iteration in Strebulaev and Whited (2012), Section 3.1.3
 
     Parameters

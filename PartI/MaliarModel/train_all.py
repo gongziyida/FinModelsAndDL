@@ -12,7 +12,7 @@ save_path = lambda fname: os.path.join(script_dir, fname)
 def main(objective, hidden_dim, num_epochs, batch_size, eval_interval, T):
     ''' Main function to train and test the model that optimizes the given objective.'''
     model = build_forward_nn(hidden_dim=hidden_dim)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.0005)
     objs_train = np.zeros(num_epochs)
     rewards_eval = np.zeros(num_epochs//eval_interval)
 
@@ -21,6 +21,7 @@ def main(objective, hidden_dim, num_epochs, batch_size, eval_interval, T):
         train_step = tf.function(train_step_lf_reward)
     elif objective == 'Euler residual':
         train_step = tf.function(train_step_euler_residual)
+        train_step = (train_step_euler_residual)
     elif objective == 'Bellman residual':
         train_step = tf.function(train_step_bellman_residual)
     else:

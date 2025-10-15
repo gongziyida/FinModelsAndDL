@@ -121,7 +121,8 @@ def train_step_euler_residual(model, optimizer, batch_size, w1=0.1, w2=4.0,
         c = c_w_ratio * w
         
         # next w, dimensions matching y1
-        next_w = step(w, tf.stop_gradient(c), y0, r)
+        # next_w = step(w, tf.stop_gradient(c), y0, r)
+        next_w = step(w, c, y0, r)
         next_w = tf.tile(tf.expand_dims(next_w, axis=1), [1,batch_size])
         y1, next_w = tf.reshape(y1, [-1]), tf.reshape(next_w, [-1]) # flatten
         
@@ -129,7 +130,7 @@ def train_step_euler_residual(model, optimizer, batch_size, w1=0.1, w2=4.0,
         next_c = tf.sigmoid(model_out) * next_w
         next_c = tf.reshape(next_c, [batch_size, batch_size])
 
-        cond = FB_euler_residual(c, next_c, c_w_ratio, gamma, beta, r) # (batch_size, 1)
+        cond = FB_euler_residual(c, next_c, c_w_ratio, gamma, beta, r) # (batch_size,)
         loss = euler_residual(cond[None,:], tf.ones([1]))
 
     gradient = tape.gradient(loss, model.trainable_variables)
@@ -158,7 +159,7 @@ def eval_euler_residual(model, batch_size, w1=0.1, w2=4.0,
     next_c = tf.sigmoid(tf.squeeze(model([y1, next_w]), axis=-1)) * next_w
     next_c = tf.reshape(next_c, [batch_size, batch_size])
 
-    cond = FB_euler_residual(c, next_c, c_w_ratio, gamma, beta, r) # (batch_size, 1)
+    cond = FB_euler_residual(c, next_c, c_w_ratio, gamma, beta, r) # (batch_size,)
     loss = euler_residual(cond[None,:], tf.ones([1]))
 
     return loss 
@@ -209,7 +210,8 @@ def train_step_bellman_residual(model, optimizer, batch_size, w1=0.1, w2=4.0,
         c = c_w_ratio * w
         
         # next w, dimensions matching y1
-        next_w = step(w, tf.stop_gradient(c), y0, r)
+        # next_w = step(w, tf.stop_gradient(c), y0, r)
+        next_w = step(w, c, y0, r)
         next_w = tf.tile(tf.expand_dims(next_w, axis=1), [1,batch_size]) 
         y1, next_w = tf.reshape(y1, [-1]), tf.reshape(next_w, [-1]) # flatten
 
@@ -225,7 +227,7 @@ def train_step_bellman_residual(model, optimizer, batch_size, w1=0.1, w2=4.0,
 
         u = utility(c, gamma)
 
-        cond = FB_bellman_residual(c, c_w_ratio, next_dv, gamma, beta) # (batch_size, 1)
+        cond = FB_bellman_residual(c, c_w_ratio, next_dv, gamma, beta) # (batch_size,)
         loss = bellman_residual(v, next_v, u, beta, cond[None,:], tf.ones([1]))
 
     gradient = tape.gradient(loss, model.trainable_variables)

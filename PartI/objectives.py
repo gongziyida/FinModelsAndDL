@@ -1,6 +1,7 @@
+''' Contains generic objective functions for training.'''
 import tensorflow as tf
 
-@tf.function
+#@tf.function
 def lifetime_reward(rewards, beta):
     ''' Computes the discounted sum of rewards averaged over initializations.
 
@@ -20,7 +21,7 @@ def lifetime_reward(rewards, beta):
     lf_reward = tf.reduce_mean(tf.reduce_sum(rewards * discount, axis=1))
     return lf_reward
 
-@tf.function
+#@tf.function
 def euler_residual(conditions, weights):
     ''' Computes the Euler residual averaged over initializations and randomness.
 
@@ -41,7 +42,7 @@ def euler_residual(conditions, weights):
     residual = tf.reduce_mean(residual)
     return residual 
 
-@tf.function
+#@tf.function
 def bellman_residual(values, next_values, rewards, beta, conditions, weights):
     ''' Computes the Bellman residual averaged over initializations and randomness.
 

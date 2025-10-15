@@ -71,7 +71,7 @@ def utility_derivative(c, gamma=2.0):
     ''' Computes the derivative of the utility function for given consumptions (states).'''
     return tf.pow(c + 1e-2, -gamma)
 
-@tf.function
+#@tf.function
 def FB_euler_residual(c, next_c, c_w_ratios, gamma=2.0, beta=0.9, r=0.04):
     ''' Computes the Euler residual objective using the Fischer-Burmeister function 
     as per Maliar et al. 2021.
@@ -94,15 +94,15 @@ def FB_euler_residual(c, next_c, c_w_ratios, gamma=2.0, beta=0.9, r=0.04):
     Returns
     -------
     fb : tf.Tensor
-        Fischer-Burmeister function outputs, of shape (*c.shape, 1)
+        Fischer-Burmeister function outputs, of the same shape as `c`
     '''
     du, next_du = utility_derivative(c, gamma), utility_derivative(next_c, gamma)
     h = beta * (1 + r) * tf.reduce_mean(next_du, axis=-1) / du
     a, b = 1 - c_w_ratios, 1 - h
     fb_err = a + b - tf.sqrt(tf.square(a) + tf.square(b))
-    return tf.expand_dims(fb_err, axis=-1)
+    return tf.expand_dims(fb_err, axis=-1) # for compatibility with objectives.py
 
-@tf.function
+#@tf.function
 def FB_bellman_residual(c, c_w_ratios, next_dv, gamma=2.0, beta=0.9):
     ''' Computes the Bellman residual objective using the Fischer-Burmeister function 
     as per Maliar et al. 2021.
@@ -123,10 +123,10 @@ def FB_bellman_residual(c, c_w_ratios, next_dv, gamma=2.0, beta=0.9):
     Returns
     -------
     fb : tf.Tensor
-        Fischer-Burmeister function outputs, of shape (*c.shape, 1)
+        Fischer-Burmeister function outputs, of the same shape as `c`
     '''
     du = utility_derivative(c, gamma)
     a = 1 - c_w_ratios
     b = 1 - beta * tf.reduce_mean(next_dv, axis=-1) / du
     fb_err = a + b - tf.sqrt(tf.square(a) + tf.square(b))
-    return tf.expand_dims(fb_err, axis=-1)
+    return tf.expand_dims(fb_err, axis=-1) # for compatibility with objectives.py
