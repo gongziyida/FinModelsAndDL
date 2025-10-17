@@ -1,5 +1,5 @@
-# MLCOE TSRL 2026 Exercise
-This repository contains my solutions to Question 4 for the MLCOE TSRL 2026 internship exercise as a part of its application process.
+# TSRL 2026 Exercise
+This repository contains my solutions to Question 4 for an exercise as a part of an application process.
 
 ## Setup
 1. Make sure the packages listed in `requirements.txt` have been installed up to their compatible versions.
