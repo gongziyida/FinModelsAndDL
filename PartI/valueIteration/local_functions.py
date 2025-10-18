@@ -1,10 +1,10 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 from PartI.functions import profit_function, adjustment_cost
+from PartI.init_capital_stock import init_k_grid
 
 @tf.function
-def value_function(k, lnz, k_vals, V_table, lnz_transition_prob, psi0, psi1, 
-                   delta=0.15, r=0.04, theta=0.7):
+def value_function(k, lnz, k_vals, V_table, lnz_transition_prob, psi0, psi1, delta, r, theta):
     ''' Computes the tabular value function V given in Strebulaev and Whited (2012), Eq. 3.10.
 
     Parameters
@@ -23,12 +23,12 @@ def value_function(k, lnz, k_vals, V_table, lnz_transition_prob, psi0, psi1,
         Coefficient to the quardratic component in the adjusted cost
     psi1 : float
         Coefficient to the constant component in the adjusted cost
-    delta : float, optional
-        Constant rate of capital depreciation, by default 0.15
-    r : float, optional
-        Risk-free interest rate, by default 0.04
-    theta : float, optional
-        Profit function curvature in the profit function, by default 0.7
+    delta : float
+        Constant rate of capital depreciation
+    r : float
+        Risk-free interest rate
+    theta : float
+        Profit function curvature in the profit function
 
     Returns
     -------
@@ -47,7 +47,7 @@ def value_function(k, lnz, k_vals, V_table, lnz_transition_prob, psi0, psi1,
     return V_max, argmax_k
 
 @tf.function
-def AR1_transition_matrix(n_grids, rho=0.7, sigma=0.15, m=5):
+def AR1_transition_matrix(n_grids, rho=0.7, sigma=0.15, m=6):
     ''' Computes the transition probability matrix for 
     the discretized y~AR(1) using Tauchen (1986).
 
@@ -87,18 +87,16 @@ def AR1_transition_matrix(n_grids, rho=0.7, sigma=0.15, m=5):
     return tf.clip_by_value(P, 0.0, 1.0), y
 
 
-def value_iteration(n_lnz, n_k, max_iter, psi0, psi1, 
-                    k_min=1, rho=0.7, sigma=0.15, m=5, delta=0.15, r=0.04, theta=0.7):
+def value_iteration(max_iter, n_lnz, n_k, pow_bound, psi0, psi1, 
+                    rho, sigma, m, delta, r, theta):
     ''' Solves the value function iteration in Strebulaev and Whited (2012), Section 3.1.3
 
     Parameters
     ----------
-    n_lnz, n_k : int
-        Number of discrete grids for ln(z) and k respectively
     max_iter : int
         Maximum number of value function iterations
-    k_min : float, optional
-        Minimum value for capital stock, by default 1
+    n_lnz, n_k : int
+        Number of discrete grids for log shock ln(z) and capital stock k respectively
     Other parameters see z_transition_matrix() and value_function()
 
     Returns
@@ -108,8 +106,7 @@ def value_iteration(n_lnz, n_k, max_iter, psi0, psi1,
     lnz_vals, k_vals : tf.Tensor
         Discretized values for ln(z) and k, of shape (n_lnz,) and (n_k,)
     '''
-    k_vals = k_min * tf.pow(1 / (1 - delta), tf.range(n_k, dtype=tf.float32)) # (n_k,)
-    # k_vals = k_min * tf.pow(1 / (1 - delta), tf.linspace(0.0, 40.0, n_k)) # (n_k,)
+    k_vals = init_k_grid(n_k, pow_bound, delta, theta, r) # (n_k,)
     Pz, lnz_vals = AR1_transition_matrix(n_lnz, rho, sigma, m) # (n_lnz, n_lnz) and (n_lnz,)
     V_table = tf.zeros((n_lnz, n_k), dtype=tf.float32) # initial V_table
 
@@ -121,8 +118,9 @@ def value_iteration(n_lnz, n_k, max_iter, psi0, psi1,
 
     max_diff, rel_diff = [], [] # for monitoring convergence
     for _ in range(max_iter): # value function iteration
-        new_V_table = value_function(k_grid, lnz_grid, k_vals, V_table, Pz_grid,
-                                     delta, r, theta, psi0, psi1)[0]
+        new_V_table = value_function(k_grid, lnz_grid, k_vals, V_table, Pz_grid, 
+                                     psi0=psi0, psi1=psi1, 
+                                     delta=delta, r=r, theta=theta)[0]
         new_V_table = tf.reshape(new_V_table, (n_lnz, n_k))
 
         diff = tf.abs(new_V_table - V_table)

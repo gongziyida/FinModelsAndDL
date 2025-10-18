@@ -66,8 +66,12 @@ def bellman_residual(values, next_values, rewards, beta, conditions, weights):
     residual : tf.Tensor
         Computed Bellman residual (scalar)
     '''
+    # td_err = rewards + beta * tf.reduce_mean(next_values, axis=-1) - values
+    # squared_avg = tf.square(tf.reduce_mean(conditions, axis=-1))
+    # residual = tf.linalg.matvec(squared_avg, weights, transpose_a=True)
+    # residual = tf.reduce_mean(tf.square(td_err) + residual)
+    # td_err = rewards + beta * tf.reduce_mean(tf.stop_gradient(next_values), axis=-1) - values
     td_err = rewards + beta * tf.reduce_mean(next_values, axis=-1) - values
-    squared_avg = tf.square(tf.reduce_mean(conditions, axis=-1))
-    residual = tf.linalg.matvec(squared_avg, weights, transpose_a=True)
-    residual = tf.reduce_mean(tf.square(td_err) + residual)
+    td_target = rewards + beta * tf.reduce_mean(next_values, axis=-1)
+    residual = tf.reduce_mean(tf.square(td_err) - 0.5 * td_target)
     return residual

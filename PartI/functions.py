@@ -29,7 +29,7 @@ def AR1(num_samples, T, rho, sigma):
         y_t = rho * y_t + eps
         y = y.write(t, y_t)
     return tf.transpose(y.stack())
-    
+
 #@tf.function
 def step(I, k, delta):
     ''' Computes the next period capital stock k[t+1] given current capital stock k[t] and investment I[t].
@@ -53,7 +53,7 @@ def step(I, k, delta):
     # clip to avoid numerical issues
     return tf.where(new_k < 1e-5, 1e-5, new_k)
 
-@tf.function
+#@tf.function
 def profit_function(k, z, theta):
     ''' Computes the profit function π function in Strebulaev and Whited (2012), Section 3.1.3
     k and z need to have the same shape.
@@ -72,10 +72,9 @@ def profit_function(k, z, theta):
     profit : tf.Tensor
         Computed profit tensor of the same shape as k and z
     '''
-    
     return z * tf.pow(k, theta)
 
-@tf.function
+#@tf.function
 def marginal_product_of_capital(k, z, theta):
     ''' Computes the marginal product of capital, a.k.a. the partial derivative of 
     the profit π w.r.t. capital k in Strebulaev and Whited (2012), Section 3.1.3
@@ -120,7 +119,7 @@ def marginal_cost_of_investment(I, k, psi0):
     '''
     return psi0 * I / k
 
-@tf.function
+#@tf.function
 def cash_flow(I, k, z, theta, psi0, psi1):
     ''' Computes the cash flow in Strebulaev and Whited (2012), Section 3.1.3
 
